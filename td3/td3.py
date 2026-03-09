@@ -36,14 +36,15 @@ class TD3:
             noise_clip: float=0.5,
             weight_decay_actor: float=0.0,
             weight_decay_critic: float=0.0,
-            delay_actor: int=2,
+            delay: int=2,
             buffer_capacity: int=1_000_000,
             buffer_start_size: int=25_000,
             n_eval_runs: int=10,
             eval_every: int=5_000,
             save_every: int=10_000,
             seed: int=0,
-            device: str="cpu"
+            device: str="cpu",
+            verbose: bool=True
     ) -> None:
         self.device = torch.device(device)
 
@@ -67,7 +68,7 @@ class TD3:
         self.tau = tau
         self.lr_actor = lr_actor
         self.lr_critic = lr_critic
-        self.delay_actor = delay_actor
+        self.delay = delay
 
         # Exploration settings 
         self.exp_noise_std = exp_noise_std
@@ -93,12 +94,12 @@ class TD3:
         self.n_eval_runs = n_eval_runs 
         self.save_every = save_every
         self.eval_every = eval_every
-        
+        self.verbose = verbose
+
         self.env_id = None
         self.seed = seed
 
         # Stats
-        self.global_step = 0
         self.stats = {"t" : [], "average_return" : [], "std_return": []}
 
     def init_networks(self, actor: Actor, critic: Critic) -> None:
@@ -121,7 +122,7 @@ class TD3:
         a_t.clip_(-self.action_scale, self.action_scale) 
         return a_t.squeeze(0).cpu().numpy()
 
-    def update_networks(self) -> None:
+    def update_networks(self, step: int) -> None:
         self.actor.train(); self.critic.train()
         self.actor_target.eval(); self.critic_target.eval() 
 
@@ -131,19 +132,17 @@ class TD3:
         with torch.no_grad():
             # Clipped noise 
             z = torch.randn_like(a) * self.tgt_noise_std                    # [B, action_dim]
-            z.clip_(-self.noise_clip, self.noise_clip)                      # [B, action_dim]
+            z.clamp_(-self.noise_clip, self.noise_clip)                     # [B, action_dim]
 
             # Target policy smoothing
-            a_nxt_tgt = self.actor_target(s_nxt)                            # [B, action_dim]
-            a_nxt_tgt = a_nxt_tgt + z                                       # [B, action_dim]
-
-            # Computing TD target 
-            a_nxt_tgt = self.actor_target(s_nxt)                            # [B, action_dim]
-            q1_nxt_tgt, q2_nxt_tgt = self.critic_target(s_nxt, a_nxt_tgt)   # [B, 1], [B, 1]
+            a_nxt_tgt = self.actor_target(s_nxt) + z                        # [B, action_dim]
+            a_nxt_tgt.clamp_(-self.action_scale, self.action_scale)
             
             # Clipped double Q-learning 
+            q1_nxt_tgt, q2_nxt_tgt = self.critic_target(s_nxt, a_nxt_tgt)   # [B, 1], [B, 1]
             q_nxt_tgt = torch.min(q1_nxt_tgt, q2_nxt_tgt).view(-1)          # [B]
 
+            # Computing TD target 
             td_target = r + self.gamma * (1.0 - d) * q_nxt_tgt              # [B]
 
         # Update both critic's
@@ -152,19 +151,22 @@ class TD3:
         loss_q2 = self.criterion_critic(td_target, q2.view(-1))             # [1]
 
         self.optimizer_critic.zero_grad()
-        loss_q1.backward()
-        loss_q2.backward()
+        loss_critic = loss_q1 + loss_q2
+        loss_critic.backward()
         self.optimizer_critic.step()
 
-        # Delayed policy update 
-        if self.global_step % self.delay_actor == 0: 
+        # Delayed policy and target update 
+        if step % self.delay == 0: 
             # Update actor
-            q1, _ = self.critic(s, self.actor(s))                              # [B, 1]
-            loss_actor = torch.mean(-q1)                                       # [1]
+            q1, _ = self.critic(s, self.actor(s))                           # [B, 1]
+            loss_actor = torch.mean(-q1)                                    # [1]
 
             self.optimizer_actor.zero_grad()
             loss_actor.backward()
             self.optimizer_actor.step()
+
+            # Update target networks
+            self.update_target_networks()
 
     @torch.no_grad()
     def update_target_networks(self) -> None:
@@ -181,40 +183,31 @@ class TD3:
         
         episode_num = 0
         done = False 
-        s, _ = env.reset() 
+        s, _ = env.reset()
         for t in range(self.timesteps): 
+            # Select action with exploration noise 
             a = self.get_action(s, exp_noise=True)
+
+            # Observe next state and reward 
             s_nxt, r, terminated, truncated, _ = env.step(a)
             done = terminated or truncated
-
+            
+            # Update buffer 
             self.replay_buffer.push(s, a, r, s_nxt, terminated)
 
-            self.update_networks()
-
-            if self.global_step % self.delay_actor == 0: 
-                self.update_target_networks()
+            # Update neural nets
+            self.update_networks(t)
 
             # Update state 
             s = s_nxt
-            self.global_step = t
 
             if done:
                 s, _ = env.reset()
                 episode_num += 1
 
-            if self.global_step % self.eval_every == 0:
-                self.evaluate()
-                average_return = self.stats["average_return"][-1]
-                print(
-                    f"Total T: {self.global_step:6d}\t"
-                    f"Episode: {episode_num:5d}\t"
-                    f"Average Return: {average_return:10.3f}"
-                )
+            self.handle_periodic_tasks(t, episode_num)
 
-            if self.global_step % self.save_every == 0:
-                self.checkpoint()
-
-        self.checkpoint()
+        self.checkpoint(self.timesteps)
         env.close()
 
     def explore_env(self, env: gym.Env) -> None:
@@ -237,7 +230,7 @@ class TD3:
                 done = False
 
     @torch.inference_mode() 
-    def evaluate(self) -> None:
+    def evaluate(self, step: int) -> None:
         self.actor.eval(); self.critic.eval()
 
         done = False
@@ -256,24 +249,38 @@ class TD3:
             s, _ = env.reset()
 
         env.close()
-        self.update_stats(rewards)
+        self.update_stats(step, rewards)
 
-    def update_stats(self, rewards: np.ndarray) -> None:
+    def update_stats(self, step: int, rewards: np.ndarray) -> None:
         mean_ep_reward = float(np.mean(rewards))
         std_ep_reward = float(np.std(rewards))
-        self.stats["t"].append(self.global_step)
+        self.stats["t"].append(step)
         self.stats["average_return"].append(mean_ep_reward)
         self.stats["std_return"].append(std_ep_reward)
 
-    def checkpoint(self) -> None:
+    def handle_periodic_tasks(self, step: int, ep_num: int) -> None:
+        if step > 0 and step % self.eval_every == 0:
+            self.evaluate(step)
+            average_return = self.stats["average_return"][-1]
+            if self.verbose: 
+                print(
+                    f"Total T: {step:6d}\t"
+                    f"Episode: {ep_num:5d}\t"
+                    f"Average Return: {average_return:10.3f}"
+                )
+
+        if step > 0 and step % self.save_every == 0:
+            self.checkpoint(step) 
+
+    def checkpoint(self, step: int) -> None:
         save_dir = f"{self.env_id}-TD3-Checkpoints-Seed{self.seed}"
         os.makedirs(save_dir, exist_ok=True)
 
-        file_name = f"{self.env_id}-TD3-Actor-Lr{self.lr_actor}-t{self.global_step}-Seed{self.seed}.pt"
+        file_name = f"{self.env_id}-TD3-Actor-Lr{self.lr_actor}-t{step}-Seed{self.seed}.pt"
         file_name = os.path.join(save_dir, file_name) 
         torch.save(self.actor.state_dict(), file_name)
         
-        file_name = f"{self.env_id}-TD3-Critic-Lr{self.lr_actor}-t{self.global_step}-Seed{self.seed}.pt"
+        file_name = f"{self.env_id}-TD3-Critic-Lr{self.lr_critic}-t{step}-Seed{self.seed}.pt"
         file_name = os.path.join(save_dir, file_name) 
         torch.save(self.critic.state_dict(), file_name)
 

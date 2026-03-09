@@ -4,12 +4,10 @@ PyTorch reimplementation of the paper ["Addressing Function Approximation Error 
 
 ## Algorithm
 
-[Algorithm 1](./assets/td3_pseudocode.png) shows TD3 in detail.
-
-|                                                  |
-| ------------------------------------------------ |
-| ![td3_pseudocode](./assets/td3_pseudocode.png) |
-| *Twin Delayed Deep Deterministic Policy Gradient Algorithm (TD3). Taken from [Fujimoto et al., 2018](https://arxiv.org/abs/1802.09477).*| 
+|                                                  |                      | 
+| ------------------------------------------------ | -------------------- |
+| ![td3_pseudocode](./assets/td3_pseudocode.png) | ![td3_pseudocode_spinning_up](./assets/td3_pseudocode_spinning_up.png) |
+| *Twin Delayed Deep Deterministic Policy Gradient Algorithm (TD3). Taken from [Fujimoto et al., 2018](https://arxiv.org/abs/1802.09477).* |*Twin Delayed Deep Deterministic Policy Gradient Algorithm (TD3). Taken from [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/td3.html).*|  
 
 TD3 makes three main changes to DDPG [(Lilicrap et al., 2015)](https://arxiv.org/abs/1509.02971):
 
@@ -17,25 +15,10 @@ TD3 makes three main changes to DDPG [(Lilicrap et al., 2015)](https://arxiv.org
 * Clipped double Q-learning
 * Delayed policy updates
 
-### 1. Target policy smoothing
-
-|                                                  |
-| ------------------------------------------------ |
-| ![target_policy_smoothing](./assets/target_policy_smoothing.png) |
-| *Target policy smoothing. Taken from [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/td3.html).*| 
-
-
-### 2. Clipped double Q-learning
-
-|                  |            | 
-| ---------------- | ---------- | 
-| ![q_learning_target](./assets/q_learning_target.png) |  ![q_learning_objective](./assets/q_learning_objective.png) | 
-| *TD targed for clipped double Q-learning. Taken from [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/td3.html).* |*Objective functions for both critic networks. Taken from [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/td3.html).* | 
-
-
-### 3. Delayed policy updates
-
-The policy (and target networks) are updated every $d \in \mathbb{N}$ steps (i.e. $d = 2$).
+| Target policy smoothing | Clipped double Q-learning  |          | Delayed policy updates | 
+| ---------------------- | --------- | -------- | -------- |
+| ![target_policy_smoothing](./assets/target_policy_smoothing.png) |![q_learning_target](./assets/q_learning_target.png) |![q_learning_objective](./assets/q_learning_objective.png) | The policy (and target networks) are updated every $d \in \mathbb{N}$ steps (i.e. $d = 2$). |  
+| *Target policy smoothing. Taken from [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/td3.html).*| TD targed and objective functions for clipped double Q-learning. Taken from [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/algorithms/td3.html).* | |
 
 
 ## Usage
