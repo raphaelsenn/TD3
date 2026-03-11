@@ -119,7 +119,7 @@ class TD3:
         a_t = self.actor(x_t)
         if exp_noise: 
             a_t = a_t + torch.randn_like(a_t) * self.exp_noise_std
-        a_t.clip_(-self.action_scale, self.action_scale) 
+        a_t.clamp_(-self.action_scale, self.action_scale) 
         return a_t.squeeze(0).cpu().numpy()
 
     def update_networks(self, step: int) -> None:

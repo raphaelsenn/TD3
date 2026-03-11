@@ -229,3 +229,11 @@ __marimo__/
 
 # Ignore csv's
 *.csv
+
+# Ignore checkpoints
+Ant*/
+HalfCheetah*/
+Ant*/
+Humanoid*/
+Hopper*/
+Walker2d*/

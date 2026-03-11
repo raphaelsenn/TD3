@@ -2,6 +2,13 @@
 
 PyTorch reimplementation of the paper ["Addressing Function Approximation Error in Actor-Critic Methods"](https://arxiv.org/abs/1802.09477) from Fujimoto et al., 2018.
 
+| | | | | |
+| -- | -- | -- | -- | -- |
+| ![humanoid_gif](./assets/humanoid_td3.gif) | ![halfcheetah_fig](./assets/halfcheetah_td3.gif) | ![hopper_gif](./assets/hopper_td3.gif) | ![walker2d_gif](./assets/walker2d_td3.gif) | ![ant_gif](./assets/ant_td3.gif) |
+| ![humanoid_curve](./assets/humanoid_learning_curve.png) | ![halfcheetah_curve](./assets/halfcheetah_learning_curve.png) | ![hopper_curve](./assets/hopper_learning_curve.png) | ![walker2d_curve](./assets/walker2d_learning_curve.png) | ![ant_curve](./assets/ant_learning_curve.png) |
+
+Figures: Learning curves for the OpenAI Gym continuous control tasks HalfCheetah-v5, Ant-v5, Hopper-v5 and Walker2d-v5. The shaded region represents the standard deviation of the average evaluation over 10 trials across 3 different seeds. Curves are smoothed with an average filter.
+
 ## Algorithm
 
 |                                                  |                      | 
@@ -56,11 +63,23 @@ td3.train(env)
 
 ## Experimental setup
 
-
 * OS: Fedora Linux 42 (Workstation Edition) x86_64
 * CPU: AMD Ryzen 5 2600X (12) @ 3.60 GHz
 * GPU: NVIDIA GeForce RTX 3060 ti (8GB VRAM)
 * RAM: 32 GB DDR4 3200 MHz
+
+My hyperparameters match the hyperparameteres from the original paper. For all environment i used:
+
+| Hyperparameter | Value |
+| -------------- | ----- |
+| Learning rate (actor) | 0.0003 |
+| Learning rate (critic) | 0.0003 |
+| $\gamma$ (discount factor)| 0.99 |
+| $\tau$ (polyak averaging) | 0.005 |
+| Batch size | 256 |
+| Buffer capacity | 1 000 000 |
+| Buffer start size| 25 000 |
+
 
 ## Citations
 

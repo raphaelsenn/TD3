@@ -14,22 +14,21 @@ def parse_args() -> Namespace:
 
     parser.add_argument("--env_id", type=str, default="HalfCheetah-v5")
     parser.add_argument("--num_timesteps", type=int, default=1_000_000)
-    parser.add_argument("--state_dim", type=int, default=17)
-    parser.add_argument("--action_dim", type=int, default=6)
+    parser.add_argument("--action_scale", type=float, default=1.0)
     parser.add_argument("--device", type=str, default="cpu")
 
-    parser.add_argument("--h1_dim", type=int, default=400)
-    parser.add_argument("--h2_dim", type=int, default=300)
+    parser.add_argument("--h1_dim", type=int, default=256)
+    parser.add_argument("--h2_dim", type=int, default=256)
 
-    parser.add_argument("--lr_actor", type=float, default=1e-3)
-    parser.add_argument("--lr_critic", type=float, default=1e-3)
+    parser.add_argument("--lr_actor", type=float, default=3e-4)
+    parser.add_argument("--lr_critic", type=float, default=3e-4)
     parser.add_argument("--weight_decay_actor", type=float, default=0.0)
     parser.add_argument("--weight_decay_critic", type=float, default=0.0)
     parser.add_argument("--delay", type=int, default=2)
 
     parser.add_argument("--buffer_capacity", type=int, default=1_000_000)
     parser.add_argument("--buffer_start_size", type=int, default=25_000)
-    parser.add_argument("--batch_size", type=int, default=100)
+    parser.add_argument("--batch_size", type=int, default=256)
 
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--tau", type=float, default=0.005)
@@ -59,9 +58,9 @@ def main() -> None:
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
 
-    actor = ActorMLP(state_dim, args.h1_dim, args.h2_dim, action_dim)
+    actor = ActorMLP(state_dim, args.h1_dim, args.h2_dim, action_dim, args.action_scale)
     critic = CriticMLP(state_dim, args.h1_dim, args.h2_dim, action_dim)
-
+    print(args)
     ddpg = TD3(
         actor=actor,
         critic=critic,

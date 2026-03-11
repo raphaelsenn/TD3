@@ -9,14 +9,12 @@ from td3.actor import ActorMLP
 def parse_args() -> Namespace:
     parser = ArgumentParser(description="Online Evaluation")
 
-    parser.add_argument("--env_id", type=str, default="HalfCheetah-v5")
-    parser.add_argument("--state_dim", type=int, default=17)
-    parser.add_argument("--action_dim", type=int, default=6)
+    parser.add_argument("--env_id", type=str, default="Hopper-v5")
     parser.add_argument("--device", type=str, default="cpu")
 
-    parser.add_argument("--h1_dim", type=int, default=400)
-    parser.add_argument("--h2_dim", type=int, default=300)
-    parser.add_argument("--weights", type=str, default="HalfCheetah-v5-TD3-Checkpoints/HalfCheetah-v5-TD3-Actor-Lr0.0003-t980000.pt")
+    parser.add_argument("--h1_dim", type=int, default=256)
+    parser.add_argument("--h2_dim", type=int, default=256)
+    parser.add_argument("--weights", type=str, default="Hopper-v5-TD3-Actor-Lr0.0003.pt")
 
     parser.add_argument("--verbose", default=True)
 
@@ -38,9 +36,13 @@ def play(env: gym.Env, actor: ActorMLP, n_episodes: int=10) -> None:
 def main() -> None:
     args = parse_args()
     
-    actor = ActorMLP(args.state_dim, args.h1_dim, args.h2_dim, args.action_dim)
-    actor.load_state_dict(torch.load(args.weights, weights_only=True, map_location="cpu")) 
     env = gym.make(args.env_id, render_mode="human")
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0] 
+    
+    actor = ActorMLP(state_dim, args.h1_dim, args.h2_dim, action_dim)
+    actor.load_state_dict(torch.load(args.weights, weights_only=True, map_location="cpu")) 
+
     play(env, actor)
 
 
