@@ -68,7 +68,7 @@ td3.train(env)
 * GPU: NVIDIA GeForce RTX 3060 ti (8GB VRAM)
 * RAM: 32 GB DDR4 3200 MHz
 
-My hyperparameters match the hyperparameteres from the original paper. For all environment i used:
+For all environments (Humanoid-v5, HalfCheetah-v5, Walker2d-v5, Ant-v5) the following hyperparameters were used:
 
 | Hyperparameter | Value |
 | -------------- | ----- |
