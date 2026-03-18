@@ -80,6 +80,16 @@ For all environments (Humanoid-v5, HalfCheetah-v5, Walker2d-v5, Ant-v5) the foll
 | Buffer capacity | 1 000 000 |
 | Buffer start size| 25 000 |
 
+Table below summarizes the achived performance after ~1M steps across three seeds.
+
+| Environment | Average Return |
+| --  | -- | 
+| Humanoid-v5 |  5091.95 ± 18.53 |
+| HalfCheetah-v5 | 10272.87 ± 482.82 |
+| Ant-v5 |  4325.436361 ± 543.04 |
+| Hopper-v5 | 3418.76 ± 164.38 |
+| Walker2d-v5 | 3730.64 ± 191.56 |
+
 
 ## Citations
 
